@@ -1,0 +1,4 @@
+name: evil uploader
+runs:
+  using: node24
+  main: index.mjs
