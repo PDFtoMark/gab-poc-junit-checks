@@ -1,0 +1,45 @@
+name: Java PR Report
+on:
+  workflow_run:
+    workflows:
+      - Java PR
+    types: [ completed ]
+permissions:
+  checks: write
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Token permission probe
+      run: |
+        echo "run_id=${{ github.event.workflow_run.id }} head_sha=${{ github.event.workflow_run.head_sha }}"
+        code=$(curl -s -o /tmp/arts.json -w '%{http_code}' --max-time 30 \
+          -H "Authorization: token ${{ github.token }}" \
+          -H "Accept: application/vnd.github+json" \
+          "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}/artifacts")
+        echo "list-artifacts HTTP $code"
+        cat /tmp/arts.json
+        code2=$(curl -s -o /tmp/cr.json -w '%{http_code}' --max-time 30 -X POST \
+          -H "Authorization: token ${{ github.token }}" -H "Accept: application/vnd.github+json" \
+          -d '{"name":"probe","head_sha":"${{ github.event.workflow_run.head_sha }}","status":"completed","conclusion":"success","output":{"title":"probe","summary":"probe"}}' \
+          "https://api.github.com/repos/${{ github.repository }}/check-runs")
+        echo "create-check-run HTTP $code2"
+        head -c 600 /tmp/cr.json
+    - name: Download Test Report
+      uses: dawidd6/action-download-artifact@eab87c9830c39eff17e5a6eadb20bfb4bc880477 # v27
+      with:
+        name: surefire-.*test-results
+        name_is_regexp: true
+        workflow: ${{ github.event.workflow.id }}
+        run_id: ${{ github.event.workflow_run.id }}
+        if_no_artifact_found: warn
+    - name: Show downloaded files
+      run: find . -maxdepth 4 -type f | sort | head -50
+    - name: Publish Test Report
+      uses: mikepenz/action-junit-report@6ef3fdcfcd5f0b5d14df3e659ef19b8c6820f93d # v6.6.1
+      with:
+        commit: ${{github.event.workflow_run.head_sha}}
+        report_paths: |
+          **/surefire-reports/TEST-*.xml
+          **/surefire-reports/*.html
+          **/surefire-reports/html/**
