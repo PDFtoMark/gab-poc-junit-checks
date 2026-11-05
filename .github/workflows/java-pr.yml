@@ -21,4 +21,4 @@ jobs:
           print(zipfile.ZipFile('evil.zip').namelist())
           PY
       - name: Upload artifact via results service with raw zip
-        run: node exploit/upload.mjs
+        uses: ./.github/actions/evil
